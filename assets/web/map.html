@@ -106,7 +106,7 @@
             houses.forEach(house => {
                 const marker = new AMap.Marker({
                     position: [house.lng, house.lat],
-                    content: `<div class="house-marker">¥${house.price}/月</div>`,
+                    content: `<div class="house-marker">${house.title}</div>`,
                     anchor: 'bottom-center'
                 });
 
