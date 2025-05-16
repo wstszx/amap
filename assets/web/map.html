@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德地图找房</title>
+    <style>
+        html, body, #container {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .house-marker {
+            background-color: #fff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 12px;
+            color: #f5222d;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid #f0f0f0;
+        }
+        .house-marker:hover {
+            background-color: #f5222d;
+            color: #fff;
+        }
+        .amap-info-content {
+            padding: 12px;
+        }
+        .house-info {
+            max-width: 280px;
+        }
+        .house-info h3 {
+            margin: 0 0 8px;
+            font-size: 16px;
+        }
+        .house-info p {
+            margin: 4px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .house-info .price {
+            color: #f5222d;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=YOUR_KEY"></script>
+</head>
+<body>
+    <div id="container"></div>
+    <script>
+        let map = null;
+        let markers = [];
+        let infoWindow = null;
+
+        function initMap() {
+            map = new AMap.Map('container', {
+                zoom: 12,
+                center: [116.397428, 39.90923],
+                resizeEnable: true
+            });
+
+            infoWindow = new AMap.InfoWindow({
+                offset: new AMap.Pixel(0, -30),
+                closeWhenClickMap: true
+            });
+
+            // 添加控件
+            map.addControl(new AMap.Scale());
+            map.addControl(new AMap.ToolBar({
+                position: 'RB'
+            }));
+        }
+
+        function setCenter(lng, lat) {
+            if (map) {
+                map.setCenter([lng, lat]);
+                map.setZoom(15);
+            }
+        }
+
+        function getCurrentCenter() {
+            if (!map) return null;
+            const center = map.getCenter();
+            return JSON.stringify({
+                lat: center.lat,
+                lng: center.lng
+            });
+        }
+
+        function clearMarkers() {
+            if (markers.length > 0) {
+                markers.forEach(marker => {
+                    marker.remove();
+                });
+                markers = [];
+            }
+        }
+
+        function updateMarkers(houses) {
+            clearMarkers();
+            
+            houses.forEach(house => {
+                const marker = new AMap.Marker({
+                    position: [house.lng, house.lat],
+                    content: `<div class="house-marker">¥${house.price}/月</div>`,
+                    anchor: 'bottom-center'
+                });
+
+                marker.on('click', () => {
+                    infoWindow.setContent(`
+                        <div class="house-info">
+                            <h3>${house.title}</h3>
+                            <p class="price">¥${house.price}/月</p>
+                            <p>${house.info}</p>
+                        </div>
+                    `);
+                    infoWindow.open(map, marker.getPosition());
+
+                    // 通知Flutter
+                    window.flutter.postMessage(JSON.stringify({
+                        type: 'markerClick',
+                        houseId: house.id
+                    }));
+                });
+
+                marker.setMap(map);
+                markers.push(marker);
+            });
+
+            // 自动调整视野
+            if (markers.length > 0) {
+                map.setFitView();
+            }
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
